@@ -11,5 +11,8 @@ mise.local.lock
 
 apps/api/storage
 
+# Personal Claude Code instructions; shared ones belong in CLAUDE.md.
+CLAUDE.local.md
+
 # Snapshots and screenshots from the Playwright MCP visual check.
 .playwright-mcp

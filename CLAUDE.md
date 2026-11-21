@@ -45,6 +45,9 @@ each test suite.
 - Build outputs (`dist`, `.next`) and `.env*` files are ignored by git. Every
   configurable value lives in an env file, never as a default in code or
   `compose.yaml`; add each new variable to the matching `.env.example`.
+- `CLAUDE.local.md` at the root holds one developer's own instructions and is
+  ignored by git. Rules the team shares go in this file; secrets stay in the
+  env files, never in either document.
 - The two apps do not share code yet. Introduce a `packages/` workspace only
   when real shared code exists.
 
