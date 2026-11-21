@@ -14,8 +14,9 @@ The module layout and the rule that modules talk only through the buses are in
 
 ## Commands and queries
 
-- A **command** changes state (`commands/<verb>-<subject>.command.ts`), and a
-  **query** only reads (`queries/<verb>-<subject>.query.ts`). Classify by
+- A **command** changes state (`commands/<name>.command.ts`, such as
+  `create-meeting` or `register`), and a **query** only reads
+  (`queries/<name>.query.ts`). Classify by
   effect, not by HTTP verb: `POST /auth/login` is a query because it writes
   nothing.
 - Each command or query extends `Command<TResult>` or `Query<TResult>`, so
@@ -39,9 +40,6 @@ The module layout and the rule that modules talk only through the buses are in
 - Logic shared by several handlers lives in a plain injectable service
   (`AuthTokenService`) or a plain function module (`users/email.ts`), not in
   another handler.
-- An error that crosses the bus is a plain domain error
-  (`EmailAlreadyRegisteredError`); the calling handler maps it to an HTTP
-  exception.
 
 ## Controllers
 

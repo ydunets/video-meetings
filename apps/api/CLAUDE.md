@@ -24,7 +24,7 @@ Postgres runs through the root `compose.yaml` (`pnpm db:up`). Drizzle ORM (`driz
 
 ## CQRS
 
-Feature modules follow CQRS through `@nestjs/cqrs`. `CqrsModule.forRoot()` is registered once in `AppModule`; each feature module only lists its handlers as providers. A command changes state and a query only reads; each has one handler, and controllers only dispatch. `.claude/rules/api/cqrs.md` holds the rules for writing commands, queries, handlers, controllers and DTOs.
+Feature modules follow CQRS through `@nestjs/cqrs`. `CqrsModule.forRoot()` is registered once in `AppModule`; each feature module only lists its handlers as providers. `.claude/rules/api/cqrs.md` holds the rules for writing commands, queries, handlers, controllers and DTOs.
 
 - Modules talk to each other only through the buses: a handler dispatches another module's command or query (`RegisterHandler` sends `CreateUserCommand`, `LoginHandler` sends `FindUserByEmailQuery`) and never injects that module's handlers or services. A module that only serves the buses exports nothing and is imported once, in `AppModule`. Errors crossing the bus are plain domain errors (`EmailAlreadyRegisteredError`); the calling handler maps them to HTTP exceptions.
 
