@@ -28,7 +28,7 @@ describe('Database connection pool (e2e)', () => {
     await app.close();
   });
 
-  async function findBackendPid(): Promise<number> {
+  async function getBackendPid(): Promise<number> {
     const result =
       await database.$client.query<BackendPidRow>(SELECT_BACKEND_PID);
     return result.rows[0].pid;
@@ -49,12 +49,12 @@ describe('Database connection pool (e2e)', () => {
   }
 
   it('keeps serving queries after Postgres drops an idle connection', async () => {
-    const droppedPid = await findBackendPid();
+    const droppedPid = await getBackendPid();
 
     await terminateBackend(droppedPid);
     await vi.waitFor(() => expect(database.$client.totalCount).toBe(0));
 
-    const reconnectedPid = await findBackendPid();
+    const reconnectedPid = await getBackendPid();
     expect(reconnectedPid).not.toBe(droppedPid);
   });
 });
