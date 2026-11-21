@@ -22,17 +22,13 @@ server, because the API does not enable CORS.
 - Stream in both directions: pass `request.body` with `duplex: 'half'`, return
   `apiResponse.body` without buffering it, and forward
   `signal: request.signal` so an aborted browser request aborts the API call.
-- Copy only the response headers the browser needs (`Content-Type`,
-  `Content-Length`, `Content-Disposition`, `X-Content-Type-Options`), as named
-  constants.
-- Relay an API error message unchanged where the UI shows it (413, 415). For a
-  missing or foreign resource (`isMissingResourceStatus`), answer 404 without a
-  body.
+- Header names are named constants (`CONTENT_TYPE_HEADER`). Which headers each
+  existing handler copies, and how it relays errors, is described in
+  `apps/web/CLAUDE.md` (uploads and downloads).
 
 ## Proxy
 
-- The `matcher` in `src/proxy.ts` lists `/`, `/meetings/:id` and `/profile`
-  only, as literal strings: Next.js reads it statically and ignores variables.
-- A matched route has its request body buffered and truncated at 10 MB
-  (`proxyClientMaxBodySize`), so the matcher must never cover a Route Handler.
+- A route matched by the proxy has its request body buffered and truncated at 10 MB
+  (the Next.js default of `proxyClientMaxBodySize`, which `next.config.ts`
+  does not set), so the matcher must never cover a Route Handler.
   The upload e2e test sends an 11 MB file to catch that.
