@@ -14,13 +14,23 @@ function createDatabase(config: ConfigService): Database {
   const database = drizzle(config.getOrThrow<string>('DATABASE_URL'), {
     schema,
   });
-  // The pool emits 'error' when Postgres drops an idle connection. It has
-  // already discarded that connection and opens a new one for the next
-  // query, but an unhandled 'error' event would terminate the process.
-  database.$client.on('error', (error) => {
-    logger.error(`Idle database connection lost: ${error.message}`);
+  // A connection that Postgres drops emits 'error', and the pool emits it
+  // again when the connection was idle. Either event without a listener
+  // terminates the process. The pool discards the broken connection and
+  // opens a new one for the next query, so logging it once is enough.
+  database.$client.on('connect', (client) => {
+    client.on('error', logLostConnection);
   });
+  database.$client.on('error', ignoreErrorLoggedByConnection);
   return database;
+}
+
+function logLostConnection(error: Error): void {
+  logger.error(`Database connection lost: ${error.message}`);
+}
+
+function ignoreErrorLoggedByConnection(): void {
+  // logLostConnection has already logged this error.
 }
 
 @Module({

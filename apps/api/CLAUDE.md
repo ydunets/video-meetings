@@ -20,7 +20,7 @@ Run from the repository root with `pnpm --filter api <script>`, or from this dir
 Postgres runs through the root `compose.yaml` (`pnpm db:up`). Drizzle ORM (`drizzle-orm/node-postgres`) is the data access layer; `drizzle.config.ts` configures `drizzle-kit`.
 
 - `src/database/schema.ts` is the single schema source; `.claude/rules/api/drizzle.md` holds the schema and migration rules.
-- `DatabaseModule` provides the Drizzle client under the `DATABASE` token and closes the pool on shutdown. It logs an idle connection that Postgres drops instead of letting the pool's `error` event stop the process; the pool reconnects on the next query (`test/database.e2e-spec.ts`). Only command and query handlers inject it; controllers and services never do.
+- `DatabaseModule` provides the Drizzle client under the `DATABASE` token and closes the pool on shutdown. It logs a connection that Postgres drops, idle or held by a transaction, instead of letting the unhandled `error` event stop the process; the pool discards that connection and opens a new one for the next query (`test/database.e2e-spec.ts`). Only command and query handlers inject it; controllers and services never do.
 
 ## CQRS
 

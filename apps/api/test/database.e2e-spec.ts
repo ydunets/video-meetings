@@ -1,6 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { INestApplication, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { sql } from 'drizzle-orm';
 import { Client } from 'pg';
 import { AppModule } from './../src/app.module.js';
 import { DATABASE, Database } from './../src/database/database.module.js';
@@ -59,6 +60,27 @@ describe('Database connection pool (e2e)', () => {
     await terminateBackend(droppedPid);
     await vi.waitFor(() => expect(database.$client.totalCount).toBe(0));
     expect(loggedError).toHaveBeenCalledOnce();
+
+    const reconnectedPid = await getBackendPid();
+    expect(reconnectedPid).not.toBe(droppedPid);
+  });
+
+  it('keeps serving queries after Postgres drops a connection held by a transaction', async () => {
+    const loggedError = vi.spyOn(Logger.prototype, 'error');
+    let droppedPid: number | undefined;
+
+    const transaction = database.transaction(async (tx) => {
+      const result = await tx.execute<BackendPidRow>(
+        sql.raw(SELECT_BACKEND_PID),
+      );
+      droppedPid = result.rows[0].pid;
+      await terminateBackend(droppedPid);
+      await vi.waitFor(() => expect(loggedError).toHaveBeenCalled());
+      await tx.execute(sql.raw(SELECT_BACKEND_PID));
+    });
+
+    await expect(transaction).rejects.toThrow();
+    expect(loggedError).toHaveBeenCalled();
 
     const reconnectedPid = await getBackendPid();
     expect(reconnectedPid).not.toBe(droppedPid);
