@@ -1,5 +1,5 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { INestApplication } from '@nestjs/common';
+import { INestApplication, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Client } from 'pg';
 import { AppModule } from './../src/app.module.js';
@@ -28,6 +28,10 @@ describe('Database connection pool (e2e)', () => {
     await app.close();
   });
 
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
   async function getBackendPid(): Promise<number> {
     const result =
       await database.$client.query<BackendPidRow>(SELECT_BACKEND_PID);
@@ -35,24 +39,26 @@ describe('Database connection pool (e2e)', () => {
   }
 
   async function terminateBackend(pid: number): Promise<void> {
-    const administrator = new Client({
+    const terminatingClient = new Client({
       connectionString: app
         .get(ConfigService)
         .getOrThrow<string>('DATABASE_URL'),
     });
-    await administrator.connect();
+    await terminatingClient.connect();
     try {
-      await administrator.query(TERMINATE_BACKEND, [pid]);
+      await terminatingClient.query(TERMINATE_BACKEND, [pid]);
     } finally {
-      await administrator.end();
+      await terminatingClient.end();
     }
   }
 
   it('keeps serving queries after Postgres drops an idle connection', async () => {
+    const loggedError = vi.spyOn(Logger.prototype, 'error');
     const droppedPid = await getBackendPid();
 
     await terminateBackend(droppedPid);
     await vi.waitFor(() => expect(database.$client.totalCount).toBe(0));
+    expect(loggedError).toHaveBeenCalledOnce();
 
     const reconnectedPid = await getBackendPid();
     expect(reconnectedPid).not.toBe(droppedPid);
