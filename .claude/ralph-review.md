@@ -12,7 +12,7 @@ These rules apply only to the headless review session that the Ralph Loop Stop h
 
 - Read the pull request: `gh pr view <pr> --json number,title,body,files,commits` and `gh pr diff <pr>`.
 - Read the milestone's issues: `gh issue list --milestone "<milestone>" --state all`.
-- Read the PRD in `documents/prds/` and the plan in `documents/plans/` that the milestone belongs to, together with the `CLAUDE.md` of each app the change touches.
+- Read the PRD in `documents/prds/` and the plan in `documents/plans/` that the milestone belongs to, together with the `CLAUDE.md` of each app the change touches and every `.claude/rules/` file whose `paths` match a changed file.
 
 ## Review
 
