@@ -19,19 +19,13 @@ Run from the repository root with `pnpm --filter api <script>`, or from this dir
 
 Postgres runs through the root `compose.yaml` (`pnpm db:up`). Drizzle ORM (`drizzle-orm/node-postgres`) is the data access layer; `drizzle.config.ts` configures `drizzle-kit`.
 
-- `src/database/schema.ts` is the single schema source. Change it, then run `db:generate` and commit the generated migration. Never edit applied migrations.
+- `src/database/schema.ts` is the single schema source; `.claude/rules/api/drizzle.md` holds the schema and migration rules.
 - `DatabaseModule` provides the Drizzle client under the `DATABASE` token and closes the pool on shutdown. Only command and query handlers inject it; controllers and services never do.
 
 ## CQRS
 
-Feature modules follow CQRS through `@nestjs/cqrs`. `CqrsModule.forRoot()` is registered once in `AppModule`; each feature module only lists its handlers as providers.
+Feature modules follow CQRS through `@nestjs/cqrs`. `CqrsModule.forRoot()` is registered once in `AppModule`; each feature module only lists its handlers as providers. A command changes state and a query only reads; each has one handler, and controllers only dispatch. `.claude/rules/api/cqrs.md` holds the rules for writing commands, queries, handlers, controllers and DTOs.
 
-- A **command** changes state (`commands/<name>.command.ts`), and a **query** only reads (`queries/<name>.query.ts`). Classify by effect, not by HTTP verb: `POST /auth/login` is a query because it writes nothing.
-- Each command or query extends `Command<TResult>` or `Query<TResult>`, so `commandBus.execute()` and `queryBus.execute()` return a typed promise without casts.
-- Each has exactly one handler in the same folder (`<name>.handler.ts`, decorated with `@CommandHandler` or `@QueryHandler`). A handler owns one use case end to end: it runs the Drizzle query for a table its own module owns, maps rows to the response shape, and throws Nest HTTP exceptions (`NotFoundException`, `ConflictException`, `UnauthorizedException`) for expected failures.
-- Commands may return a result when the HTTP response needs it (the created meeting, the issued token). This is a deliberate relaxation of strict CQRS.
-- Controllers stay thin: validate the body with a DTO, read the user with `@CurrentUser()`, build the command or query, and dispatch it. No business logic and no database access.
-- Logic shared by several handlers lives in a plain injectable service (`AuthTokenService`) or a plain function module (`users/email.ts`), not in another handler.
 - Modules talk to each other only through the buses: a handler dispatches another module's command or query (`RegisterHandler` sends `CreateUserCommand`, `LoginHandler` sends `FindUserByEmailQuery`) and never injects that module's handlers or services. A module that only serves the buses exports nothing and is imported once, in `AppModule`. Errors crossing the bus are plain domain errors (`EmailAlreadyRegisteredError`); the calling handler maps them to HTTP exceptions.
 
 New feature module layout:

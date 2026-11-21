@@ -27,6 +27,13 @@ each test suite.
   (single quotes, trailing commas, 80 columns).
 - Files are formatted automatically after every edit (a `PostToolUse` hook in
   `.claude/settings.json`); do not run `pnpm format` by hand.
+- File-type rules live in `.claude/rules/api/` (Drizzle schema and
+  migrations, CQRS pieces, Vitest suites) and `.claude/rules/web/` (Playwright
+  suite, Route Handlers and proxy, HeroUI components). Each rule's `paths`
+  frontmatter loads it only when a matching file is read or edited, so a rule
+  that applies to every file of an app belongs in that app's `CLAUDE.md`
+  instead. Quote every pattern, because an invalid YAML block makes the rule
+  load in every session.
 - `permissions.allow` in `.claude/settings.json` pre-approves the edits,
   `pnpm`, `git` and `gh` commands, the Playwright MCP tools (`mcp__playwright`,
   registered at local scope, not in the repository) and the `ui-ux-pro-max`
