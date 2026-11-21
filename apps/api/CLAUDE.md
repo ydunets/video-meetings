@@ -76,5 +76,3 @@ Avatars use a second `MulterModule.registerAsync`, in `profile.module.ts`, scope
 - Protect user data with `@UseGuards(JwtAuthGuard)` and filter every query by the current user's id.
 - Read configuration from environment variables and document each one in `.env.example`.
 - `typescript/no-floating-promises` is an error: every promise must be awaited or handled explicitly.
-- Do not add Oxfmt, Oxlint or TypeScript to this package; they are provided by the root.
-- When a change alters this app's architecture (modules, persistence, external services, scripts, ports or environment variables), update this file and the root `README.md` and `CLAUDE.md` as described in the root "Documentation maintenance" section.

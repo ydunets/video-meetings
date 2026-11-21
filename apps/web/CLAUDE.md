@@ -33,7 +33,5 @@ Run from the repository root with `pnpm --filter web <script>`, or from this dir
 - The proxy `matcher` lists `/`, `/meetings/:id` and `/profile` only and must never cover a Route Handler; `.claude/rules/web/route-handlers.md` explains why and how Route Handlers stream to the API.
 - Route paths, API endpoints and HTTP statuses live in `src/lib/routes.ts` and `src/lib/api.ts`. The proxy `matcher` is the one exception: Next.js reads it statically and ignores variables.
 - After installing or removing a dependency, restart `pnpm dev`: pnpm may move `next` to a new directory, and a running dev server then fails with "Could not find the module ... in the React Client Manifest".
-- Do not add ESLint or its configuration files; linting is handled by Oxlint at the root.
 - UI is built from HeroUI v3 components. `.claude/rules/web/ui.md` holds the component rules and the three verification steps that every UI change must pass before it is reported as complete.
 - After installing or upgrading a package that ships CSS, delete `.next` and restart the dev server: Turbopack's cache can keep serving the previous stylesheet.
-- When a change alters this app's architecture (routing structure, data fetching, API integration, scripts or environment variables), update this file and the root `README.md` and `CLAUDE.md` as described in the root "Documentation maintenance" section.

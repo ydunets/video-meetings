@@ -1,6 +1,7 @@
 # video-meetings
 
-A pnpm workspace containing two applications. The API implements registration (name, email and password) and login that issue JWTs, a JWT protected profile (`GET /profile` returns the name, email and `avatarId`, `PATCH /profile` updates the name; `PUT`, `DELETE` and `GET /profile/avatar` upload, remove and serve the user's own JPEG, PNG or WebP avatar, at most `MAX_AVATAR_SIZE_BYTES`, stored in an `avatars` folder inside `FILES_STORAGE_DIR`), a JWT protected password change (`POST /auth/password` confirms the current password, returns a new token and revokes every earlier one through a per-user token version; a concurrent second change answers 409), per-account limits on sign-in and password change attempts (`AUTH_ATTEMPT_LIMIT` within `AUTH_ATTEMPT_WINDOW_SECONDS`, then 429), and a JWT protected meetings module (create, list, get by id; upload, list and download a meeting's files, stored on the API server's disk under `FILES_STORAGE_DIR`; uploads are limited to `MAX_FILE_SIZE_BYTES` and an allowed format list). It follows CQRS through `@nestjs/cqrs`, as described in `apps/api/CLAUDE.md`. The web app has `/register`, `/login`, a protected home page `/` that shows the user's name and initials linked to a protected profile page `/profile`, and a protected meeting page `/meetings/[id]`; it calls the API from Server Actions, Server Components and Route Handlers (server to server, so the API needs no CORS) using `API_URL` from `apps/web/.env`. File uploads and downloads go through the Route Handlers `POST /meetings/[id]/files` and `GET /meetings/[id]/files/[fileId]`, which stream them to and from the API; the upload form shows progress and refuses a file over `MAX_UPLOAD_SIZE_BYTES` from `apps/web/.env` before sending it.
+A pnpm workspace with two applications. Each app's `CLAUDE.md` describes its
+features and architecture; the root `README.md` describes the public API.
 
 | Path       | Stack                                              | Default port |
 | ---------- | -------------------------------------------------- | ------------ |
@@ -9,54 +10,99 @@ A pnpm workspace containing two applications. The API implements registration (n
 
 ## Commands
 
-Run every command from the repository root.
-
-- `pnpm install`: install dependencies for the whole workspace (a single root lockfile).
-- `pnpm dev`, `pnpm dev:web`, `pnpm dev:api`: start both apps, or one of them.
-- `pnpm build`: build both apps.
-- `pnpm lint`: run Oxlint once over the repository (type-aware). `pnpm lint:fix` applies autofixes.
-- `pnpm typecheck`: run the TypeScript compiler in each app and over the Ralph Loop Stop hook in `.claude/hooks/` (TypeScript that Node runs directly through type stripping, Node 22.18 or later).
-- `pnpm test`: run the unit tests, including the Ralph Loop hook's `node:test` file in `.claude/hooks/`.
-- `pnpm format` and `pnpm format:check`: Oxfmt.
-- `pnpm db:up` and `pnpm db:down`: start (and wait for health) or stop the Postgres 17 container defined in `compose.yaml` (port 5432, volume `postgres-data`). Docker with Compose v2 is required. Container settings come from the root `.env` (template: `.env.example`); `compose.yaml` has no defaults and refuses to start without them.
-- `pnpm ralph`: run the Ralph Loop Stop hook directly for the `phases` in `.claude/ralph-config.json`, with no seed session. Each phase names a milestone, a branch and an optional `base`, the branch of an earlier phase that it builds on; without `base` the phase starts from `main`. The hook works on the first phase whose branch has no pull request, creates or switches to its branch from `origin/<base>`, opens its pull request into that base, and then moves on to the next phase; an issue left open stops the whole run. The script drops `ANTHROPIC_API_KEY`, so every session it starts signs in with the claude.ai subscription instead of an API key. The iteration counter in the git directory (`ralph-iteration.json`) limits each phase to `maxIteration` sessions and is deleted when the phase's pull request opens; deleting it by hand allows another `maxIteration` sessions. `--max-turns <n>` and `--prompt <text>` override the matching config fields for one run and pass the same validation; an unknown flag stops the script.
-- `pnpm --filter api db:migrate`: apply the Drizzle migrations in `apps/api/drizzle/`. `db:generate` creates a new migration after a schema change.
-- `pnpm --filter api test:e2e`: run the API end-to-end suite. It needs a running, migrated database and `apps/api/.env`.
-- `pnpm --filter web test:e2e`: run the web app's Playwright suite. It needs the running web app and API (`pnpm dev`), a migrated database, `apps/web/.env` and Chromium (`pnpm --filter web exec playwright install chromium`, once).
-- Arguments after a test script filter it: `pnpm --filter api test:e2e auth` runs matching files, `pnpm --filter web test:e2e -g "signing out"` runs matching test titles. The root `README.md` "Tests" section describes each suite.
+Find every command in the root `package.json` and in each app's
+`package.json`, and run it from the repository root. The root `README.md`
+describes the toolchain setup (mise), the Ralph Loop and the prerequisites of
+each test suite.
 
 ## Conventions
 
-- Shared tooling (Oxlint, Oxfmt, TypeScript) is installed only at the root. Do not add these packages to an app.
-- Oxlint is configured in the root `.oxlintrc.json`; each app extends it with its own `.oxlintrc.json`. ESLint is not used.
-- Oxfmt settings live in the root `.oxfmtrc.json` (single quotes, trailing commas, 80 columns). Prettier is not used.
-- A Husky `pre-commit` hook (`.husky/pre-commit`, installed by the root `prepare` script) runs `pnpm lint`, `pnpm typecheck`, `pnpm test`, `pnpm --filter api test:e2e` and `pnpm --filter web test:e2e`; a failing check blocks the commit, so committing needs a migrated database and a running `pnpm dev`; when Postgres is unreachable, the hook stops before the e2e suites and asks for `pnpm db:up`. A `pre-push` hook (`.husky/pre-push`) runs `pnpm lint`.
-- A Claude Code `PostToolUse` hook in `.claude/settings.json` runs Oxfmt on every file Claude edits or writes.
-- File-type rules live in `.claude/rules/api/` and `.claude/rules/web/`. Each rule's `paths` frontmatter loads it only when a matching file is read or edited, so a rule that applies to every file of an app belongs in that app's `CLAUDE.md` instead. Quote every pattern, because an invalid YAML block makes the rule load in every session.
-- `permissions.allow` in `.claude/settings.json` pre-approves the edits, `pnpm`, `git` and `gh` commands, the Playwright MCP tools (`mcp__playwright`, registered at local scope, not in the repository) and the `ui-ux-pro-max` skill that the headless Ralph Loop sessions need for their checks and the web visual check, and `permissions.deny` blocks pushing, rebasing, opening and merging pull requests. Both lists apply to interactive sessions too.
-- Add a dependency to the app that needs it with `pnpm --filter <web|api> add <package>`.
-- Build outputs (`dist`, `.next`) and `.env*` files are ignored by git. Every configurable value lives in an env file, never as a default in code or `compose.yaml`; add each new variable to the matching `.env.example`.
-- The two apps do not share code yet. Introduce a `packages/` workspace only when real shared code exists.
+- mise, not Corepack or nvm, manages Node.js 22 and pnpm 12: `mise.toml` holds
+  the requests and the committed `mise.lock` the exact versions. The root
+  `README.md` "Toolchain" section describes setup and upgrades.
+- Shared tooling (Oxlint, Oxfmt, TypeScript) is installed only at the root. Do
+  not add these packages, ESLint or Prettier to an app.
+- Oxlint is configured in the root `.oxlintrc.json`; each app extends it with
+  its own `.oxlintrc.json`. Oxfmt settings live in the root `.oxfmtrc.json`
+  (single quotes, trailing commas, 80 columns).
+- Files are formatted automatically after every edit (a `PostToolUse` hook in
+  `.claude/settings.json`); do not run `pnpm format` by hand.
+- File-type rules live in `.claude/rules/api/` and `.claude/rules/web/`. Each
+  rule's `paths`
+  frontmatter loads it only when a matching file is read or edited, so a rule
+  that applies to every file of an app belongs in that app's `CLAUDE.md`
+  instead. Quote every pattern, because an invalid YAML block makes the rule
+  load in every session.
+- `permissions.allow` in `.claude/settings.json` pre-approves the edits,
+  `pnpm`, `git` and `gh` commands, the Playwright MCP tools (`mcp__playwright`,
+  registered at local scope, not in the repository) and the `ui-ux-pro-max`
+  skill that the headless Ralph Loop sessions need for their checks and the web
+  visual check, and `permissions.deny` blocks pushing, rebasing, opening and
+  merging pull requests. Both lists apply to interactive sessions too.
+- Add a dependency to the app that needs it with
+  `pnpm --filter <web|api> add <package>`.
+- Build outputs (`dist`, `.next`) and `.env*` files are ignored by git. Every
+  configurable value lives in an env file, never as a default in code or
+  `compose.yaml`; add each new variable to the matching `.env.example`.
+- `CLAUDE.local.md` at the root holds one developer's own instructions and is
+  ignored by git. Rules the team shares go in this file; secrets stay in the
+  env files, never in either document.
+- The two apps do not share code yet. Introduce a `packages/` workspace only
+  when real shared code exists.
 
 ## Documentation maintenance
 
-Documentation must be updated in the same change as the architecture it describes. The documents are the root `README.md`, this file, and the `CLAUDE.md` of the affected app.
+Documentation must be updated in the same change as the architecture it
+describes. The documents are the root `README.md`, this file, and the
+`CLAUDE.md` of the affected app.
 
 Update them whenever a change:
 
 - adds, removes or renames an app or a `packages/` workspace;
-- changes a framework, a major dependency, or a shared tool (Oxlint, Oxfmt, TypeScript);
+- changes a framework, a major dependency, or a shared tool (Oxlint, Oxfmt,
+  TypeScript);
 - alters a root or app script, a port, or an environment variable;
-- introduces a new module boundary, data store, external service, or communication path between apps;
+- introduces a new module boundary, data store, external service, or
+  communication path between apps;
 - modifies a convention recorded in these files.
 
-Keep each statement accurate rather than exhaustive: correct or delete outdated lines instead of appending notes. State in the final report which documents were changed, or that none required a change.
+Keep each statement accurate rather than exhaustive: correct or delete outdated
+lines instead of appending notes. State in the final report which documents
+were changed, or that none required a change.
 
 ## File Upload research
 
 - [Express and multer](documents/researches/meeting-file-upload.md)
 - [NestJS with Fastify](documents/researches/meeting-file-upload-fastify.md)
 
+## Token economy
+
+Every read and every command output stays in the session's context, so each
+one should carry only what the task needs.
+
+- Read the app's `CLAUDE.md` before searching that app's code; it names the
+  module layout and the files that matter.
+- Scope searches to `apps/` (for example `rg -n <pattern> apps/`), which keeps
+  the bulky tracked files out of the results: `pnpm-lock.yaml` (about 220 KB),
+  the skill data under `.agents/skills/` (JSON and CSV files of up to 870 KB)
+  and the Drizzle snapshots in `apps/api/drizzle/meta/`. Answer a dependency
+  question from the app's `package.json`.
+- Read a long file in ranges: locate the symbol with `rg -n` first, then read
+  the lines around it.
+- Iterate on filtered tests (the root `README.md` "Tests" section lists the
+  filters) and run the full suites once, for the final Verification.
+- Trim long command output to its failure lines with `tail` or `rg`; the
+  Playwright `list` reporter prints one line per test.
+- Delegate a sweep across many files to an Explore subagent, which returns its
+  conclusion rather than the file contents.
+
 ## Verification
 
-Before reporting a change as complete, run `pnpm lint`, `pnpm typecheck` and `pnpm test`, plus `pnpm build` when configuration or dependencies changed, and the `test:e2e` suite of each app the change touches.
+Before reporting a change as complete, run `pnpm lint`, `pnpm typecheck` and
+`pnpm test`, plus `pnpm build` when configuration or dependencies changed, and
+the `test:e2e` suite of each app the change touches.
+
+The Husky `pre-commit` hook enforces the same checks, including both e2e
+suites, so a commit needs a migrated database and a running `pnpm dev`; when
+Postgres is unreachable, the hook stops and asks for `pnpm db:up`. The
+`pre-push` hook runs `pnpm lint`.
