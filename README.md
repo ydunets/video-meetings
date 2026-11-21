@@ -47,6 +47,14 @@ uploads one file at a time and downloads files through Next.js Route Handlers
 that stream to and from the API. Another user's or an unknown meeting shows
 "Meeting not found".
 
+## Toolchain
+
+[mise](https://mise.jdx.dev) pins Node.js 22 and pnpm 12 in `mise.toml`;
+`mise.lock` records the exact versions and checksums. After cloning, run
+`mise trust` once, then `mise install --locked`. Personal overrides belong in
+`mise.local.toml`, which git ignores. To upgrade a tool, run
+`mise lock --bump <tool>` and commit `mise.lock`.
+
 ## Commands
 
 Run from the repository root after `pnpm install`.

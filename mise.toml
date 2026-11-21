@@ -1,0 +1,8 @@
+min_version = { soft = "2026.11.0" }
+
+[tools]
+node = "22"
+pnpm = "12"
+
+[settings]
+lockfile = true

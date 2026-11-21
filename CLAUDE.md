@@ -27,6 +27,7 @@ Run every command from the repository root.
 
 ## Conventions
 
+- mise, not Corepack or nvm, manages Node.js 22 and pnpm 12: `mise.toml` holds the requests and the committed `mise.lock` the exact versions. The root `README.md` "Toolchain" section describes setup and upgrades.
 - Shared tooling (Oxlint, Oxfmt, TypeScript) is installed only at the root. Do not add these packages to an app.
 - Oxlint is configured in the root `.oxlintrc.json`; each app extends it with its own `.oxlintrc.json`. ESLint is not used.
 - Oxfmt settings live in the root `.oxfmtrc.json` (single quotes, trailing commas, 80 columns). Prettier is not used.
