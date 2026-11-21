@@ -43,7 +43,6 @@
       "Bash(git rebase *)",
       "Bash(git reset --hard *)",
       "Bash(git branch -D *)",
-      "Bash(gh pr create *)",
       "Bash(gh pr merge *)"
     ]
   },
