@@ -37,8 +37,8 @@ each test suite.
   `pnpm`, `git` and `gh` commands, the Playwright MCP tools (`mcp__playwright`,
   registered at local scope, not in the repository) and the `ui-ux-pro-max`
   skill that the headless Ralph Loop sessions need for their checks and the web
-  visual check, and `permissions.deny` blocks pushing, rebasing, opening and
-  merging pull requests. Both lists apply to interactive sessions too.
+  visual check, and `permissions.deny` blocks pushing, rebasing and merging
+  pull requests. Both lists apply to interactive sessions too.
 - Add a dependency to the app that needs it with
   `pnpm --filter <web|api> add <package>`.
 - Build outputs (`dist`, `.next`) and `.env*` files are ignored by git. Every
